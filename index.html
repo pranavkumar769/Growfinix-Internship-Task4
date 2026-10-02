@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SkyPulse – Modern Weather Dashboard</title>
+  <meta name="description" content="A modern, responsive Weather API Consumer web application built with Vanilla JavaScript, Fetch API, and OpenWeatherMap REST API.">
+  
+  <!-- Google Fonts for sleek modern typography -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+  
+  <!-- Stylesheet -->
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="theme-default">
+  <!-- Subtle dynamic background glow orbs -->
+  <div class="bg-orb orb-1" aria-hidden="true"></div>
+  <div class="bg-orb orb-2" aria-hidden="true"></div>
+  <div class="bg-orb orb-3" aria-hidden="true"></div>
+
+  <div class="app-wrapper">
+    <!-- Header / Navbar -->
+    <header class="app-header">
+      <div class="header-brand">
+        <div class="brand-icon">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/>
+          </svg>
+        </div>
+        <div>
+          <h1 class="brand-title">SkyPulse</h1>
+          <p class="brand-subtitle">Interactive Weather API Consumer</p>
+        </div>
+      </div>
+      <div class="header-badge">
+        <span class="live-dot" aria-hidden="true"></span>
+        <span>Live Weather REST API</span>
+      </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="main-container">
+
+      <!-- Search Section -->
+      <section class="search-section" aria-label="Search weather by city">
+        <form id="searchForm" class="search-form" onsubmit="return false;">
+          <div class="search-input-group">
+            <svg class="search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="11" cy="11" r="8"/>
+              <path d="m21 21-4.3-4.3"/>
+            </svg>
+            <input 
+              type="text" 
+              id="cityInput" 
+              class="city-input" 
+              placeholder="Search for a city (e.g., London, Tokyo, New York)..." 
+              autocomplete="off"
+              aria-label="City name"
+              required
+            >
+            <button type="button" id="clearInputBtn" class="clear-input-btn hidden" aria-label="Clear search input">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="18" y1="6" x2="6" y2="18"/>
+                <line x1="6" y1="6" x2="18" y2="18"/>
+              </svg>
+            </button>
+          </div>
+          <div class="search-actions">
+            <button type="submit" id="searchBtn" class="btn btn-primary">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="11" cy="11" r="8"/>
+                <path d="m21 21-4.3-4.3"/>
+              </svg>
+              <span>Search Weather</span>
+            </button>
+            <button type="button" id="locationBtn" class="btn btn-secondary" title="Use current GPS location">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 2a8 8 0 0 0-8 8c0 5.25 8 12 8 12s8-6.75 8-12a8 8 0 0 0-8-8z"/>
+                <circle cx="12" cy="10" r="3"/>
+              </svg>
+              <span>Current Location</span>
+            </button>
+          </div>
+        </form>
+
+        <!-- Recent Searches List -->
+        <div id="recentSearchesContainer" class="recent-searches-container">
+          <div class="recent-header">
+            <span class="recent-label">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"/>
+                <polyline points="12 6 12 12 16 14"/>
+              </svg>
+              Recent Searches:
+            </span>
+            <button id="clearHistoryBtn" class="clear-history-btn" title="Clear search history">Clear History</button>
+          </div>
+          <div id="recentSearchesList" class="recent-chips" role="list">
+            <!-- Dynamically populated chips -->
+          </div>
+        </div>
+      </section>
+
+      <!-- Feedback States: Loading & Error -->
+      <section class="feedback-container">
+        <!-- Loading State -->
+        <div id="loadingState" class="state-card loading-card hidden" role="status" aria-live="polite">
+          <div class="spinner" aria-hidden="true"></div>
+          <div class="loading-text-container">
+            <h3 class="loading-title">Fetching weather data...</h3>
+            <p class="loading-subtitle">Sending GET request to OpenWeatherMap API</p>
+          </div>
+        </div>
+
+        <!-- Error State -->
+        <div id="errorState" class="state-card error-card hidden" role="alert" aria-live="assertive">
+          <div class="error-icon" aria-hidden="true">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"/>
+              <line x1="12" y1="8" x2="12" y2="12"/>
+              <line x1="12" y1="16" x2="12.01" y2="16"/>
+            </svg>
+          </div>
+          <div class="error-content">
+            <h3 id="errorTitle" class="error-title">Oops! Something went wrong</h3>
+            <p id="errorMessage" class="error-message">Unable to fetch weather data.</p>
+          </div>
+          <button id="dismissErrorBtn" class="dismiss-btn" aria-label="Dismiss error notification">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="18" y1="6" x2="6" y2="18"/>
+              <line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          </button>
+        </div>
+      </section>
+
+      <!-- Default Welcome State (Shown before any search) -->
+      <section id="welcomeState" class="welcome-card">
+        <div class="welcome-icon-glow">
+          <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="4"/>
+            <path d="M12 2v2"/>
+            <path d="M12 20v2"/>
+            <path d="m4.93 4.93 1.41 1.41"/>
+            <path d="m17.66 17.66 1.41 1.41"/>
+            <path d="M2 12h2"/>
+            <path d="M20 12h2"/>
+            <path d="m6.34 17.66-1.41 1.41"/>
+            <path d="m19.07 4.93-1.41 1.41"/>
+          </svg>
+        </div>
+        <h2 class="welcome-title">Welcome to SkyPulse Dashboard</h2>
+        <p class="welcome-text">
+          Explore real-time weather conditions across the globe. Enter any city name above or tap <strong>Current Location</strong> to get accurate meteorological metrics instantly.
+        </p>
+        <div class="popular-cities">
+          <span class="popular-label">Popular destinations to try:</span>
+          <div class="popular-chips">
+            <button type="button" class="popular-btn" data-city="London">London</button>
+            <button type="button" class="popular-btn" data-city="Tokyo">Tokyo</button>
+            <button type="button" class="popular-btn" data-city="New York">New York</button>
+            <button type="button" class="popular-btn" data-city="Paris">Paris</button>
+            <button type="button" class="popular-btn" data-city="Sydney">Sydney</button>
+            <button type="button" class="popular-btn" data-city="Dubai">Dubai</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Weather Data Display Section (Visible after successful search) -->
+      <section id="weatherDisplay" class="weather-display hidden" aria-label="Current Weather Details">
+        
+        <!-- Primary Weather Card -->
+        <article class="primary-weather-card">
+          <div class="primary-weather-header">
+            <div class="location-meta">
+              <div class="location-badge">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/>
+                  <circle cx="12" cy="10" r="3"/>
+                </svg>
+                <h2 id="cityName" class="city-name">City Name</h2>
+                <span id="countryCode" class="country-badge">US</span>
+              </div>
+              <p id="localDateTime" class="local-date-time">Updated recently</p>
+            </div>
+            <div id="weatherConditionTag" class="condition-tag">Clear</div>
+          </div>
+
+          <div class="primary-weather-body">
+            <div class="temp-section">
+              <div class="temp-main">
+                <span id="currentTemp" class="temp-value">22</span>
+                <span class="temp-unit">°C</span>
+              </div>
+              <p class="feels-like-text">Feels like <strong id="feelsLikeSummary">21°C</strong></p>
+            </div>
+
+            <div class="condition-visual">
+              <img id="weatherIcon" class="weather-icon-img" src="" alt="Weather condition icon" width="120" height="120">
+              <p id="weatherDescription" class="weather-desc">Scattered Clouds</p>
+            </div>
+          </div>
+        </article>
+
+        <!-- Detailed Meteorological Grid Cards -->
+        <div class="metrics-grid">
+          
+          <!-- Feels Like -->
+          <article class="metric-card">
+            <div class="metric-header">
+              <div class="metric-icon-wrap icon-thermometer">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M14 4v10.54a4 4 0 1 1-4 0V4a2 2 0 0 1 4 0Z"/>
+                </svg>
+              </div>
+              <span class="metric-label">Feels Like</span>
+            </div>
+            <div class="metric-value-row">
+              <span id="metricFeelsLike" class="metric-value">--</span>
+              <span class="metric-unit">°C</span>
+            </div>
+            <p class="metric-hint">Perceived human temperature</p>
+          </article>
+
+          <!-- Humidity -->
+          <article class="metric-card">
+            <div class="metric-header">
+              <div class="metric-icon-wrap icon-droplet">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3-5.5s-3.5-4-4-6.5c-.5 2.5-2 4.9-4 6.5C6 11.1 5 13 5 15a7 7 0 0 0 7 7z"/>
+                </svg>
+              </div>
+              <span class="metric-label">Humidity</span>
+            </div>
+            <div class="metric-value-row">
+              <span id="metricHumidity" class="metric-value">--</span>
+              <span class="metric-unit">%</span>
+            </div>
+            <p class="metric-hint">Relative moisture in air</p>
+          </article>
+
+          <!-- Wind Speed -->
+          <article class="metric-card">
+            <div class="metric-header">
+              <div class="metric-icon-wrap icon-wind">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M17.7 7.7A2.5 2.5 0 1 1 20 10H2"/>
+                  <path d="M19 14a2 2 0 1 1-2 2H2"/>
+                  <path d="M15 18a2 2 0 1 1-2 2H2"/>
+                </svg>
+              </div>
+              <span class="metric-label">Wind Speed</span>
+            </div>
+            <div class="metric-value-row">
+              <span id="metricWindSpeed" class="metric-value">--</span>
+              <span class="metric-unit">km/h</span>
+            </div>
+            <p id="metricWindMs" class="metric-hint">-- m/s</p>
+          </article>
+
+          <!-- Atmospheric Pressure -->
+          <article class="metric-card">
+            <div class="metric-header">
+              <div class="metric-icon-wrap icon-gauge">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="10"/>
+                  <path d="m14 9-3 3"/>
+                  <path d="M12 17a1 1 0 1 0 0-2 1 1 0 0 0 0 2z"/>
+                </svg>
+              </div>
+              <span class="metric-label">Pressure</span>
+            </div>
+            <div class="metric-value-row">
+              <span id="metricPressure" class="metric-value">--</span>
+              <span class="metric-unit">hPa</span>
+            </div>
+            <p class="metric-hint">Barometric sea-level pressure</p>
+          </article>
+
+          <!-- Visibility -->
+          <article class="metric-card">
+            <div class="metric-header">
+              <div class="metric-icon-wrap icon-eye">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/>
+                  <circle cx="12" cy="12" r="3"/>
+                </svg>
+              </div>
+              <span class="metric-label">Visibility</span>
+            </div>
+            <div class="metric-value-row">
+              <span id="metricVisibility" class="metric-value">--</span>
+              <span class="metric-unit">km</span>
+            </div>
+            <p class="metric-hint">Distance of clear sight</p>
+          </article>
+
+          <!-- Cloudiness -->
+          <article class="metric-card">
+            <div class="metric-header">
+              <div class="metric-icon-wrap icon-cloud">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/>
+                </svg>
+              </div>
+              <span class="metric-label">Cloud Cover</span>
+            </div>
+            <div class="metric-value-row">
+              <span id="metricClouds" class="metric-value">--</span>
+              <span class="metric-unit">%</span>
+            </div>
+            <p class="metric-hint">Sky overcast fraction</p>
+          </article>
+
+          <!-- Sunrise -->
+          <article class="metric-card">
+            <div class="metric-header">
+              <div class="metric-icon-wrap icon-sunrise">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M12 2v6"/>
+                  <path d="m4.93 10.93 1.41 1.41"/>
+                  <path d="M20 18h2"/>
+                  <path d="M2 18h2"/>
+                  <path d="m19.07 10.93-1.41 1.41"/>
+                  <path d="M22 22H2"/>
+                  <path d="m8 6 4-4 4 4"/>
+                  <path d="M16 18a4 4 0 0 0-8 0"/>
+                </svg>
+              </div>
+              <span class="metric-label">Sunrise</span>
+            </div>
+            <div class="metric-value-row">
+              <span id="metricSunrise" class="metric-value time-val">--:--</span>
+            </div>
+            <p class="metric-hint">Local destination morning</p>
+          </article>
+
+          <!-- Sunset -->
+          <article class="metric-card">
+            <div class="metric-header">
+              <div class="metric-icon-wrap icon-sunset">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M12 10V2"/>
+                  <path d="m4.93 10.93 1.41 1.41"/>
+                  <path d="M20 18h2"/>
+                  <path d="M2 18h2"/>
+                  <path d="m19.07 10.93-1.41 1.41"/>
+                  <path d="M22 22H2"/>
+                  <path d="m16 6-4 4-4-4"/>
+                  <path d="M16 18a4 4 0 0 0-8 0"/>
+                </svg>
+              </div>
+              <span class="metric-label">Sunset</span>
+            </div>
+            <div class="metric-value-row">
+              <span id="metricSunset" class="metric-value time-val">--:--</span>
+            </div>
+            <p class="metric-hint">Local destination evening</p>
+          </article>
+
+        </div>
+      </section>
+
+      <!-- Educational API Documentation Section -->
+      <section class="docs-section" aria-label="API Documentation and Explanation">
+        <div class="docs-header">
+          <div class="docs-title-wrap">
+            <span class="section-tag">Learning Guide</span>
+            <h2 class="docs-title">How This Weather REST API Works</h2>
+            <p class="docs-subtitle">A beginner-friendly breakdown of HTTP, APIs, asynchronous JavaScript, and security principles.</p>
+          </div>
+        </div>
+
+        <div class="docs-grid">
+          <!-- Card 1: REST API -->
+          <article class="doc-card">
+            <div class="doc-badge">Concept 01</div>
+            <h3 class="doc-heading">What is a REST API?</h3>
+            <p class="doc-text">
+              <strong>REST</strong> stands for <em>Representational State Transfer</em>. It is an architectural style for networked applications. A REST API enables our client-side website (the Consumer) to request live weather data from remote servers (the Provider) using standard HTTP protocols.
+            </p>
+          </article>
+
+          <!-- Card 2: API Endpoint & HTTP GET -->
+          <article class="doc-card">
+            <div class="doc-badge">Concept 02</div>
+            <h3 class="doc-heading">API Endpoint & HTTP GET</h3>
+            <p class="doc-text">
+              An <strong>endpoint</strong> is a specific URL where the API receives requests. In our app, we make an <strong>HTTP GET</strong> request to:
+            </p>
+            <div class="code-snippet">
+              <code>https://api.openweathermap.org/data/2.5/weather?q={city}&appid={key}&units=metric</code>
+            </div>
+            <p class="doc-text doc-subtext">The query parameters specify the target city, the authentication token, and metric units.</p>
+          </article>
+
+          <!-- Card 3: API Key & Authentication -->
+          <article class="doc-card">
+            <div class="doc-badge">Concept 03</div>
+            <h3 class="doc-heading">API Key & Authentication</h3>
+            <p class="doc-text">
+              An <strong>API Key</strong> is a unique string assigned to registered developers. It acts as an identifier and authorization pass, allowing the weather service to enforce rate limits, prevent abuse, and track usage.
+            </p>
+          </article>
+
+          <!-- Card 4: JSON Response -->
+          <article class="doc-card">
+            <div class="doc-badge">Concept 04</div>
+            <h3 class="doc-heading">Understanding the JSON Response</h3>
+            <p class="doc-text">
+              The server responds in <strong>JSON</strong> (JavaScript Object Notation), a lightweight text format that is natively parsed into JavaScript objects containing temperature (<code>main.temp</code>), humidity, wind, and coordinates.
+            </p>
+          </article>
+
+          <!-- Card 5: fetch() API & Promises -->
+          <article class="doc-card">
+            <div class="doc-badge">Concept 05</div>
+            <h3 class="doc-heading">JavaScript fetch() API</h3>
+            <p class="doc-text">
+              The modern browser-native <code>fetch()</code> method sends network requests asynchronously without blocking the user interface. It returns a <strong>Promise</strong> that resolves with the HTTP Response.
+            </p>
+          </article>
+
+          <!-- Card 6: async / await -->
+          <article class="doc-card">
+            <div class="doc-badge">Concept 06</div>
+            <h3 class="doc-heading">Asynchronous async / await</h3>
+            <p class="doc-text">
+              <code>async/await</code> offers clean, readable syntax over raw Promises. It pauses execution within the function until the HTTP network call completes, while keeping the browser UI completely responsive and handling errors with <code>try...catch</code>.
+            </p>
+          </article>
+
+        </div>
+
+        <!-- Security Deep Dive Callout -->
+        <aside class="security-callout">
+          <div class="security-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect width="18" height="11" x="3" y="11" rx="2" ry="2"/>
+              <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+            </svg>
+          </div>
+          <div class="security-content">
+            <h4>Security Note: Frontend vs Production Architecture</h4>
+            <p>
+              In this educational frontend-only project, the API key resides in <code>config.js</code> on the browser client, which is visible in Developer Tools (Network tab).
+            </p>
+            <p>
+              <strong>Production Best Practice:</strong> In commercial web apps, secret API keys should never be placed in frontend code. Instead, requests should route through a <em>backend server or serverless proxy</em> (e.g., Node.js/Express, Python/FastAPI, or Next.js API Routes). The backend stores the API key securely in private environment variables (<code>.env</code>) and relays sanitized data back to the client.
+            </p>
+          </div>
+        </aside>
+      </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="app-footer">
+      <div class="footer-content">
+        <p class="footer-title">SkyPulse Weather Dashboard</p>
+        <p class="footer-tech">Built with Semantic HTML5, CSS3 Glassmorphism, Vanilla ES6+ JavaScript & OpenWeatherMap API</p>
+        <p class="footer-copy">&copy; 2026 Interactive Web Application. Clean, modular, and beginner-friendly architecture.</p>
+      </div>
+    </footer>
+
+  </div>
+
+  <!-- Configuration File (Defines CONFIG.API_KEY) -->
+  <script src="config.js"></script>
+
+  <!-- Application Logic -->
+  <script src="script.js"></script>
+</body>
+</html>

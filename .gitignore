@@ -1,0 +1,25 @@
+# Sensitive configuration containing API keys
+config.js
+
+# Environment files
+.env
+.env.local
+.env.development
+.env.production
+
+# Operating System files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor directories and files
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Log files
+*.log
+npm-debug.log*
